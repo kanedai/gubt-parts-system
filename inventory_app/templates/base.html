@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUBT Parts System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+        
+        // 处理搜索表单提交和加载指示器
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.getElementById('search-form');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            
+            if (searchForm) {
+                searchForm.addEventListener('submit', function() {
+                    // 显示加载指示器
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'flex';
+                    }
+                    
+                    // 禁用搜索按钮
+                    const searchButton = document.getElementById('search-button');
+                    if (searchButton) {
+                        searchButton.disabled = true;
+                        searchButton.innerText = 'Searching...';
+                    }
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        {% block content %}{% endblock %}
+        
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2025 CHENGDU GUBT INDUSTRY CO.,LTD. All rights reserved. <span class="version">Version 1.0 (May 13, 2025)</span></p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

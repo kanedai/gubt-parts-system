@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <div class="header-content">
+        <div class="logo-title">
+            <img src="{{ url_for('static', filename='images/Logo.svg') }}" alt="GUBT Logo" class="logo-image">
+            <h1>GUBT Parts System</h1>
+        </div>
+        <p class="version-header">v1.0</p>
+    </div>
+    <p class="search-instruction">Enter at least one search criteria: <strong>Ref.</strong> (reference code), <strong>Item Name</strong>, or <strong>Compatible Model</strong></p>
+</header>
+
+<div class="search-section">
+    <form method="POST" action="{{ url_for('inventory') }}" id="search-form">
+        <div class="search-form">
+            <div class="form-group">
+                <label for="reference_code">Ref.</label>
+                <input type="text" id="reference_code" name="reference_code" value="{{ request.form.get('reference_code', '') }}" placeholder="Enter OEM code">
+            </div>
+            <div class="form-group">
+                <label for="item_name">Item Name</label>
+                <input type="text" id="item_name" name="item_name" value="{{ request.form.get('item_name', '') }}" placeholder="Enter item name">
+            </div>
+            <div class="form-group">
+                <label for="models">Compatible Model</label>
+                <input type="text" id="models" name="models" value="{{ request.form.get('models', '') }}" placeholder="Enter compatible model">
+            </div>
+            <div class="form-group button-group">
+                <button type="submit" class="btn-primary" id="search-button">Search</button>
+            </div>
+        </div>
+        <div class="loading-indicator" id="loading-indicator" style="display: none;">
+            <div class="spinner"></div>
+            <p>Searching inventory, please wait...</p>
+        </div>
+    </form>
+</div>
+
+<div class="results-section">
+    <h2>Search Results</h2>
+    <div class="table-container">
+        <table id="results-table">
+            <thead>
+                <tr>
+                    <th>Ref.</th>
+                    <th>Item Name</th>
+                    <th>Description</th>
+                    <th>Compatible Model</th>
+                    <th>S.W. (kg)</th>
+                    <th>Stock Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if results %}
+                    {% for item in results %}
+                    <tr>
+                        <td>{{ item.reference_code }}</td>
+                        <td>{{ item.item_name }}</td>
+                        <td>{{ item.description }}</td>
+                        <td>{{ item.custom_compatible_model_name }}</td>
+                        <td>{{ item.weight_per_unit }}</td>
+                        <td>{{ item.sum_actual_qty }}</td>
+                    </tr>
+                    {% endfor %}
+                {% elif search_performed %}
+                    <tr>
+                        <td colspan="6" class="no-results">
+                            <p>No matching items found in our inventory. Please try different search criteria.</p>
+                            <p>If you believe this is an error, please contact your sales representative for assistance.</p>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="no-search">
+                            <p>Please use the search form above to find items in our inventory.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if error_message %}
+<div class="error-notification">
+    <p><strong>System Notice:</strong> {{ error_message }}</p>
+    <p>Our system is currently experiencing technical difficulties. Please try again later or contact your sales representative for immediate assistance.</p>
+</div>
+{% endif %}
+{% endblock %}
