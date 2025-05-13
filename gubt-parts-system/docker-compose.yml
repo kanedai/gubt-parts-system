@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - sqlite_data:/app/database
+    environment:
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-securepassword}
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:  # 定义持久化卷，用于存储SQLite数据库文件
