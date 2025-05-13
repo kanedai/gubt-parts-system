@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <div class="header-content">
+        <div class="logo-title">
+            <img src="{{ url_for('static', filename='images/Logo.svg') }}" alt="GUBT Logo" class="logo-image">
+            <h1>GUBT Parts System</h1>
+        </div>
+        <p class="version-header">v1.0</p>
+    </div>
+</header>
+
+<div class="admin-form">
+    <div class="admin-header">
+        <h2>Edit User</h2>
+        <div class="admin-actions">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Back to Admin Panel</a>
+        </div>
+    </div>
+    
+    <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" value="{{ user.username }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Leave empty to keep current password">
+            <small class="form-hint">If you don't need to change the password, leave it empty</small>
+        </div>
+        
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="is_admin" name="is_admin" {% if user.is_admin %}checked{% endif %}>
+            <label for="is_admin">Admin Privileges</label>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Update User</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -9,15 +9,13 @@
         </div>
         <p class="version-header">v1.0</p>
     </div>
-    <p class="search-instruction">Enter at least one search criteria: <strong>Ref.</strong> (reference code), <strong>Item Name</strong>, or <strong>Compatible Model</strong></p>
 </header>
-
 <div class="search-section">
     <form method="POST" action="{{ url_for('inventory') }}" id="search-form">
         <div class="search-form">
             <div class="form-group">
                 <label for="reference_code">Ref.</label>
-                <input type="text" id="reference_code" name="reference_code" value="{{ request.form.get('reference_code', '') }}" placeholder="Enter OEM code">
+                <input type="text" id="reference_code" name="reference_code" value="{{ request.form.get('reference_code', '') }}" placeholder="Enter reference code">
             </div>
             <div class="form-group">
                 <label for="item_name">Item Name</label>
@@ -74,7 +72,7 @@
                 {% else %}
                     <tr>
                         <td colspan="6" class="no-search">
-                            <p>Please use the search form above to find items in our inventory.</p>
+                            <p>Enter at least one search criteria: Ref. (reference code), Item Name, or Compatible Model</p>
                         </td>
                     </tr>
                 {% endif %}

@@ -39,6 +39,25 @@
 </head>
 <body>
     <div class="container">
+        {% if session.get('user_id') %}
+        <nav class="user-nav">
+            <div class="user-info">
+                <span class="username">{{ session.get('username') }}</span>
+                {% if session.get('is_admin') %}
+                <span class="admin-badge">Admin</span>
+                {% endif %}
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('inventory') }}">Inventory</a>
+                {% if session.get('is_admin') %}
+                <a href="{{ url_for('admin_dashboard') }}">Admin Panel</a>
+                {% endif %}
+                <a href="{{ url_for('change_password') }}">Change Password</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </nav>
+        {% endif %}
+        
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}

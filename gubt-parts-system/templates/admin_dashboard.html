@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <div class="header-content">
+        <div class="logo-title">
+            <img src="{{ url_for('static', filename='images/Logo.svg') }}" alt="GUBT Logo" class="logo-image">
+            <h1>GUBT Parts System</h1>
+        </div>
+        <p class="version-header">v1.0</p>
+    </div>
+</header>
+
+<div class="admin-panel">
+    <div class="admin-header">
+        <h2>Admin Control Panel</h2>
+        <div class="admin-actions">
+            <a href="{{ url_for('inventory') }}" class="btn-secondary">Back to Inventory</a>
+            <a href="{{ url_for('create_user') }}" class="btn-primary">Create New User</a>
+            <a href="{{ url_for('logout') }}" class="btn-danger">Logout</a>
+        </div>
+    </div>
+    
+    <div class="admin-section">
+        <h3>User Management</h3>
+        <div class="table-container">
+            <table id="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Admin</th>
+                        <th>Created</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ "Yes" if user.is_admin else "No" }}</td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else "Unknown" }}</td>
+                        <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else "Never" }}</td>
+                        <td class="actions">
+                            <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn-small btn-primary">Edit</a>
+                            {% if user.username != session.get('username') and user.username != config['ADMIN_USER'] %}
+                            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" class="inline-form" onsubmit="return confirm('Are you sure you want to delete user {{ user.username }}?');">
+                                <button type="submit" class="btn-small btn-danger">Delete</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="admin-section danger-zone">
+        <h3>Danger Zone</h3>
+        <div class="danger-action">
+            <h4>Reset Database</h4>
+            <p>This operation will clear all user data and recreate the admin account. This action is irreversible!</p>
+            <form action="{{ url_for('admin_reset_database') }}" method="POST" onsubmit="return confirm('This operation will delete all user data! Type RESET to confirm.');"> 
+                <div class="form-group">
+                    <input type="text" name="confirm" placeholder="Type RESET to confirm" required>
+                </div>
+                <button type="submit" class="btn-danger">Reset Database</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
