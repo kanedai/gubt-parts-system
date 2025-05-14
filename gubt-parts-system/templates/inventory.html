@@ -62,18 +62,11 @@
                         <td>{{ item.sum_actual_qty }}</td>
                     </tr>
                     {% endfor %}
-                {% elif no_results %}
+                {% elif error_message or no_results or search_performed %}
                     <tr>
                         <td colspan="6" class="no-results">
-                            <p>No matching items found in our inventory. Please try different search criteria.</p>
-                            <p>If you believe this is an error, please contact your sales representative for assistance.</p>
-                        </td>
-                    </tr>
-                {% elif search_performed %}
-                    <tr>
-                        <td colspan="6" class="no-results">
-                            <p>No matching items found in our inventory. Please try different search criteria.</p>
-                            <p>If you believe this is an error, please contact your sales representative for assistance.</p>
+                            <p>No results found or the service is currently under maintenance.</p>
+                            <p>Please contact your sales representative for assistance.</p>
                         </td>
                     </tr>
                 {% else %}
@@ -88,10 +81,5 @@
     </div>
 </div>
 
-{% if error_message %}
-<div class="error-notification">
-    <p><strong>System Notice:</strong> {{ error_message }}</p>
-    <p>Our system is currently experiencing network connectivity issues. Please try again later or contact your sales representative for immediate assistance.</p>
-</div>
-{% endif %}
+
 {% endblock %}
