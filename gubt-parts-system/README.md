@@ -35,8 +35,10 @@ docker-compose up -d
 您可以通过环境变量修改默认管理员账户：
 
 ```bash
-docker run -d -p 5001:5001 -e ADMIN_USER=youradmin -e ADMIN_PASSWORD=yourpassword -v gubt_data:/app/database --name gubt-parts-system kanedai1/gubt-parts-system:latest
+docker run -d -p 5001:5001 -e ADMIN_USER=youradmin -e ADMIN_PASSWORD=yourpassword -e API_URL=http://your-api-url -v gubt_data:/app/database --name gubt-parts-system kanedai1/gubt-parts-system:latest
 ```
+
+> 注意：`API_URL`环境变量用于指定后端API的URL地址，如果不指定，将使用默认值。
 
 ## 访问应用
 

@@ -170,6 +170,7 @@ def inventory():
     results = []
     error_message = None
     search_performed = False
+    no_results = False
     
     if request.method == 'POST':
         search_performed = True
@@ -215,9 +216,10 @@ def inventory():
                     results = data[0]['data']
                     results.sort(key=lambda x: x.get('sum_actual_qty', 0), reverse=True)
                 else:
-                    # Don't use flash, show no results message in table
-                    pass
+                    # Normal query but no results found
+                    no_results = True
             else:
+                # This is a real API error
                 error_message = f'System currently unavailable (Status code: {response.status_code})'
                 
         except requests.exceptions.RequestException as e:
@@ -230,7 +232,7 @@ def inventory():
             print(f"Unexpected error: {str(e)}")
             error_message = 'Unexpected system error'
     
-    return render_template('inventory.html', results=results, search_performed=search_performed, error_message=error_message)
+    return render_template('inventory.html', results=results, search_performed=search_performed, error_message=error_message, no_results=no_results)
 
 # Admin dashboard
 @app.route('/admin')
