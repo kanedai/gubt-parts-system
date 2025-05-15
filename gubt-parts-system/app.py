@@ -1,6 +1,7 @@
 import os
 import requests
 import shutil
+import re
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
@@ -8,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from dotenv import load_dotenv
 import json
+import html
 
 # 加载环境变量
 load_dotenv()
@@ -214,6 +216,12 @@ def inventory():
                 if data and isinstance(data, list) and len(data) > 0 and 'data' in data[0] and len(data[0]['data']) > 0:
                     # Extract data and sort by inventory quantity
                     results = data[0]['data']
+                    
+                    # 清理每个项目的description字段
+                    for item in results:
+                        if 'description' in item and item['description']:
+                            item['description'] = clean_html(item['description'])
+                    
                     results.sort(key=lambda x: x.get('sum_actual_qty', 0), reverse=True)
                 else:
                     # Normal query but no results found
@@ -342,6 +350,22 @@ def admin_reset_database():
     else:
         flash('Confirmation code error, database reset failed', 'error')
         return redirect(url_for('admin_dashboard'))
+
+# 清理HTML标签和实体的函数
+def clean_html(text):
+    if not text:
+        return ""
+    
+    # 解码HTML实体（如 &AMP;, &lt;, &gt; 等）
+    text = html.unescape(text)
+    
+    # 移除HTML标签（如 <br>, <p> 等）
+    text = re.sub(r'<[^>]*>', '', text)
+    
+    # 替换多个空格为单个空格
+    text = re.sub(r'\s+', ' ', text)
+    
+    return text.strip()
 
 # User changes their own password
 @app.route('/change-password', methods=['GET', 'POST'])
