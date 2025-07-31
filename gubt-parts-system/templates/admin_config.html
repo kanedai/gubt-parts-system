@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <div class="header-content">
+        <div class="logo-title">
+            <img src="{{ url_for('static', filename='images/Logo.svg') }}" alt="GUBT Logo" class="logo-image">
+            <h1>GUBT Parts System</h1>
+        </div>
+        <p class="version-header">v1.0</p>
+    </div>
+</header>
+
+<div class="admin-panel">
+    <div class="admin-header">
+        <h2>System Configuration</h2>
+        <div class="admin-actions">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Back to Admin</a>
+            <a href="{{ url_for('inventory') }}" class="btn-secondary">Back to Inventory</a>
+            <a href="{{ url_for('logout') }}" class="btn-danger">Logout</a>
+        </div>
+    </div>
+    
+    <div class="admin-section">
+        <h3>External API Configuration</h3>
+        <p>Configure the external API endpoint where user query information will be posted.</p>
+        
+        <form method="POST" class="config-form">
+            <div class="form-group">
+                <label for="external_api_url">External API URL:</label>
+                <input type="url" 
+                       id="external_api_url" 
+                       name="external_api_url" 
+                       value="{{ external_api_url }}" 
+                       placeholder="https://your-api-endpoint.com/webhook"
+                       class="form-control">
+                <small class="form-help">Enter the complete URL where query data should be posted. Leave empty to disable external posting.</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Save Configuration</button>
+            </div>
+        </form>
+        
+        <div class="config-info">
+            <h4>POST Data Format</h4>
+            <p>When a user performs a query, the following JSON data will be posted to the configured URL:</p>
+            <pre><code>{
+  "username": "user123",
+  "query_params": {
+    "item_name": "resistor",
+    "models": "1k",
+    "reference_code": "R001"
+  },
+  "results": [
+    {
+      "item_name": "Resistor 1K",
+      "model": "1K-0805",
+      "sum_actual_qty": 1000,
+      "description": "1K Ohm resistor"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00",
+  "log_id": 123
+}</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

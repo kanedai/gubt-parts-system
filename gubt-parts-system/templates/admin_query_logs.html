@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header>
+    <div class="header-content">
+        <div class="logo-title">
+            <img src="{{ url_for('static', filename='images/Logo.svg') }}" alt="GUBT Logo" class="logo-image">
+            <h1>GUBT Parts System</h1>
+        </div>
+        <p class="version-header">v1.0</p>
+    </div>
+</header>
+
+<div class="admin-panel">
+    <div class="admin-header">
+        <h2>Query Logs</h2>
+        <div class="admin-actions">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Back to Admin</a>
+            <a href="{{ url_for('inventory') }}" class="btn-secondary">Back to Inventory</a>
+            <a href="{{ url_for('logout') }}" class="btn-danger">Logout</a>
+        </div>
+    </div>
+    
+    <div class="admin-section">
+        <h3>User Query History</h3>
+        <p>View all user queries and their external API posting status.</p>
+        
+        {% if query_logs.items %}
+        <div class="table-container">
+            <table id="query-logs-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Query Time</th>
+                        <th>Query Parameters</th>
+                        <th>Results Count</th>
+                        <th>Posted</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in query_logs.items %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.username }}</td>
+                        <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <details>
+                                <summary>View Parameters</summary>
+                                <pre>{{ log.query_params }}</pre>
+                            </details>
+                        </td>
+                        <td>
+                            {% if log.query_results %}
+                                {% set results = log.query_results | from_json %}
+                                {{ results | length if results else 0 }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.posted_to_external %}
+                                <span class="status-success">✓ Yes</span>
+                            {% else %}
+                                <span class="status-failed">✗ No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.post_status %}
+                                <span class="status-{{ 'success' if log.post_status == 'success' else 'failed' }}">
+                                    {{ log.post_status }}
+                                </span>
+                            {% else %}
+                                <span class="status-pending">pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="actions">
+                            {% if not log.posted_to_external %}
+                            <form action="{{ url_for('resend_query_log', log_id=log.id) }}" method="POST" class="inline-form">
+                                <button type="submit" class="btn-small btn-primary" title="Resend to external API">Resend</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if query_logs.pages > 1 %}
+        <div class="pagination">
+            {% if query_logs.has_prev %}
+                <a href="{{ url_for('admin_query_logs', page=query_logs.prev_num) }}" class="btn-small btn-secondary">Previous</a>
+            {% endif %}
+            
+            <span class="page-info">
+                Page {{ query_logs.page }} of {{ query_logs.pages }} 
+                ({{ query_logs.total }} total records)
+            </span>
+            
+            {% if query_logs.has_next %}
+                <a href="{{ url_for('admin_query_logs', page=query_logs.next_num) }}" class="btn-small btn-secondary">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="no-data">
+            <p>No query logs found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.table-container {
+    overflow-x: auto;
+}
+
+#query-logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+#query-logs-table th,
+#query-logs-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+#query-logs-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+details {
+    cursor: pointer;
+}
+
+details pre {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.status-success {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-failed {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.status-pending {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.page-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.inline-form {
+    display: inline;
+}
+</style>
+{% endblock %}

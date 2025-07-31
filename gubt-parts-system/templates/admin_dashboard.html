@@ -17,7 +17,27 @@
         <div class="admin-actions">
             <a href="{{ url_for('inventory') }}" class="btn-secondary">Back to Inventory</a>
             <a href="{{ url_for('create_user') }}" class="btn-primary">Create New User</a>
+            <a href="{{ url_for('admin_config') }}" class="btn-primary">System Config</a>
+            <a href="{{ url_for('admin_query_logs') }}" class="btn-primary">Query Logs</a>
             <a href="{{ url_for('logout') }}" class="btn-danger">Logout</a>
+        </div>
+    </div>
+    
+    <div class="admin-section">
+        <h3>System Overview</h3>
+        <div class="stats-container">
+            <div class="stat-item">
+                <h4>Total Queries</h4>
+                <p class="stat-number">{{ total_queries }}</p>
+            </div>
+            <div class="stat-item">
+                <h4>Successful Posts</h4>
+                <p class="stat-number">{{ successful_posts }}</p>
+            </div>
+            <div class="stat-item">
+                <h4>External API Status</h4>
+                <p class="stat-status">{{ "Configured" if external_api_url else "Not Configured" }}</p>
+            </div>
         </div>
     </div>
     

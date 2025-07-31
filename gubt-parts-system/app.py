@@ -42,6 +42,25 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+# Query log model
+class QueryLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), nullable=False)
+    query_params = db.Column(db.Text, nullable=False)  # JSON string of search parameters
+    query_results = db.Column(db.Text, nullable=True)  # JSON string of results
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    posted_to_external = db.Column(db.Boolean, default=False)
+    post_status = db.Column(db.String(50), nullable=True)  # success, failed, pending
+
+# System configuration model
+class SystemConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    config_key = db.Column(db.String(100), unique=True, nullable=False)
+    config_value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
+    updated_by = db.Column(db.String(80), nullable=True)
+
 # Login verification decorator
 def login_required(f):
     @wraps(f)
@@ -106,6 +125,14 @@ def inject_context():
     if 'user_id' in session:
         user = User.query.get(session['user_id'])
     return {'now': datetime.now(), 'current_user': user}
+
+# 添加JSON过滤器
+@app.template_filter('from_json')
+def from_json_filter(json_str):
+    try:
+        return json.loads(json_str) if json_str else None
+    except:
+        return None
 
 @app.route('/logout')
 def logout():
@@ -198,15 +225,8 @@ def inventory():
             # 从环境变量获取API URL
             api_url = os.getenv('API_URL')
             
-            # 输出日志，帮助调试
-            print(f"Sending request to: {api_url} with params: {params}")
-            
             # Send GET request with timeout and error handling
             response = requests.get(api_url, params=params, timeout=10, verify=False)
-            
-            # 输出响应状态和内容，帮助调试
-            print(f"Response status: {response.status_code}")
-            print(f"Response content: {response.text[:200]}...") # 只打印前200个字符
             
             # 检查响应状态
             if response.status_code == 200:
@@ -223,6 +243,20 @@ def inventory():
                             item['description'] = clean_html(item['description'])
                     
                     results.sort(key=lambda x: x.get('sum_actual_qty', 0), reverse=True)
+                    
+                    # 记录查询日志
+                    current_user = User.query.get(session['user_id'])
+                    query_log = QueryLog(
+                        username=current_user.username,
+                        query_params=json.dumps(params),
+                        query_results=json.dumps(results[:10])  # 只保存前10条结果
+                    )
+                    db.session.add(query_log)
+                    db.session.commit()
+                    
+                    # 异步POST到外部地址
+                    post_to_external_api(current_user.username, params, results[:10], query_log.id)
+                    
                 else:
                     # Normal query but no results found
                     no_results = True
@@ -231,13 +265,10 @@ def inventory():
                 error_message = f'System currently unavailable (Status code: {response.status_code})'
                 
         except requests.exceptions.RequestException as e:
-            print(f"Request error: {str(e)}")
             error_message = 'Network connection issue'
         except ValueError as e:
-            print(f"JSON parsing error: {str(e)}")
             error_message = 'Data processing error'
         except Exception as e:
-            print(f"Unexpected error: {str(e)}")
             error_message = 'Unexpected system error'
     
     return render_template('inventory.html', results=results, search_performed=search_performed, error_message=error_message, no_results=no_results)
@@ -248,7 +279,16 @@ def inventory():
 @admin_required
 def admin_dashboard():
     users = User.query.all()
-    return render_template('admin_dashboard.html', users=users)
+    # 获取查询日志统计
+    total_queries = QueryLog.query.count()
+    successful_posts = QueryLog.query.filter_by(posted_to_external=True).count()
+    # 获取系统配置
+    external_api_url = get_system_config('external_api_url', '')
+    return render_template('admin_dashboard.html', 
+                         users=users, 
+                         total_queries=total_queries,
+                         successful_posts=successful_posts,
+                         external_api_url=external_api_url)
 
 # 创建新用户
 @app.route('/admin/users/create', methods=['GET', 'POST'])
@@ -351,6 +391,61 @@ def admin_reset_database():
         flash('Confirmation code error, database reset failed', 'error')
         return redirect(url_for('admin_dashboard'))
 
+# 系统配置管理
+@app.route('/admin/config', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_config():
+    if request.method == 'POST':
+        external_api_url = request.form.get('external_api_url', '').strip()
+        current_user = User.query.get(session['user_id'])
+        
+        set_system_config(
+            'external_api_url', 
+            external_api_url, 
+            'External API URL for posting query logs',
+            current_user.username
+        )
+        
+        flash('Configuration updated successfully', 'success')
+        return redirect(url_for('admin_config'))
+    
+    # GET request - show current config
+    external_api_url = get_system_config('external_api_url', '')
+    return render_template('admin_config.html', external_api_url=external_api_url)
+
+# 查询日志管理
+@app.route('/admin/query-logs')
+@login_required
+@admin_required
+def admin_query_logs():
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    query_logs = QueryLog.query.order_by(QueryLog.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template('admin_query_logs.html', query_logs=query_logs)
+
+# 重新发送查询日志到外部API
+@app.route('/admin/resend-log/<int:log_id>', methods=['POST'])
+@login_required
+@admin_required
+def resend_query_log(log_id):
+    query_log = QueryLog.query.get_or_404(log_id)
+    
+    try:
+        query_params = json.loads(query_log.query_params)
+        results = json.loads(query_log.query_results) if query_log.query_results else []
+        
+        post_to_external_api(query_log.username, query_params, results, log_id)
+        flash('Query log resent successfully', 'success')
+    except Exception as e:
+        flash(f'Error resending query log: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_query_logs'))
+
 # 清理HTML标签和实体的函数
 def clean_html(text):
     if not text:
@@ -366,6 +461,79 @@ def clean_html(text):
     text = re.sub(r'\s+', ' ', text)
     
     return text.strip()
+
+def get_system_config(key, default_value=None):
+    """
+    Get system configuration value
+    """
+    config = SystemConfig.query.filter_by(config_key=key).first()
+    return config.config_value if config else default_value
+
+def set_system_config(key, value, description=None, updated_by=None):
+    """
+    Set system configuration value
+    """
+    config = SystemConfig.query.filter_by(config_key=key).first()
+    if config:
+        config.config_value = value
+        config.updated_at = datetime.now()
+        config.updated_by = updated_by
+        if description:
+            config.description = description
+    else:
+        config = SystemConfig(
+            config_key=key,
+            config_value=value,
+            description=description,
+            updated_by=updated_by
+        )
+        db.session.add(config)
+    db.session.commit()
+
+def post_to_external_api(username, query_params, results, log_id):
+    """
+    POST查询信息到外部API
+    """
+    try:
+        # 获取配置的外部API地址
+        external_api_url = get_system_config('external_api_url')
+        if not external_api_url:
+            return
+        
+        # 准备POST数据
+        post_data = {
+            'username': username,
+            'query_params': query_params,
+            'results': results,
+            'timestamp': datetime.now().isoformat(),
+            'log_id': log_id
+        }
+        
+        # 发送POST请求
+        response = requests.post(
+            external_api_url,
+            json=post_data,
+            timeout=10,
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        # 更新查询日志状态
+        query_log = QueryLog.query.get(log_id)
+        if query_log:
+            if response.status_code == 200:
+                query_log.posted_to_external = True
+                query_log.post_status = 'success'
+            else:
+                query_log.post_status = f'failed_status_{response.status_code}'
+            db.session.commit()
+        
+    except Exception as e:
+        pass  # Silently handle external API errors
+        # 更新查询日志状态
+        query_log = QueryLog.query.get(log_id)
+        if query_log:
+            query_log.post_status = f'failed_error_{str(e)[:50]}'
+            db.session.commit()
 
 # User changes their own password
 @app.route('/change-password', methods=['GET', 'POST'])
